@@ -1,0 +1,10 @@
+# Sage public shell — ship ONLY the PWA shell; backend + content stay local.
+*
+!index.html
+!app.js
+!style.css
+!manifest.json
+!sw.js
+!icons/
+!icons/icon-*.png
+!.gitignore

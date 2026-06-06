@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1420">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Sage</title>
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header id="bar">
+  <button id="backBtn" class="ghost" hidden>‹</button>
+  <h1 id="title">Sage</h1>
+  <button id="connBtn" class="ghost" title="Connection">⚙</button>
+</header>
+
+<!-- Library -->
+<main id="library" class="view">
+  <div id="bookList" class="list"></div>
+  <p id="libEmpty" class="muted" hidden>No books yet — ingest one on the Mac (a PDF/EPUB, or a capture session), then tap ⚙ → reload.</p>
+</main>
+
+<!-- Player -->
+<main id="player" class="view" hidden>
+  <div id="nowChapter" class="muted"></div>
+  <div id="reader" class="reader"></div>
+</main>
+
+<div id="playerBar" hidden>
+  <button id="flagBtn" class="flag">🚩 FLAG</button>
+  <div class="controls">
+    <button id="back15" class="ctl">⏪ 15</button>
+    <button id="playBtn" class="ctl play">▶︎</button>
+    <button id="fwd15" class="ctl">15 ⏩</button>
+  </div>
+  <div class="controls sub">
+    <button id="prevSeg" class="ghost">‹ prev</button>
+    <button id="speedBtn" class="ghost">1.0×</button>
+    <button id="nextSeg" class="ghost">next ›</button>
+  </div>
+</div>
+<div id="toast" class="toast" hidden></div>
+<audio id="audio" preload="auto"></audio>
+
+<dialog id="connDlg">
+  <form method="dialog">
+    <h3>Connection</h3>
+    <label>Backend URL<input id="apiIn" placeholder="https://…ts.net:8520"></label>
+    <label>Token<input id="tokIn" placeholder="SAGE_TOKEN"></label>
+    <menu>
+      <button value="cancel" class="ghost">Close</button>
+      <button value="save">Save &amp; reload</button>
+    </menu>
+  </form>
+</dialog>
+
+<script src="app.js"></script>
+</body>
+</html>
