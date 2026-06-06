@@ -13,13 +13,22 @@ if (location.hash === "#reset") {
 }
 
 const $ = s => document.querySelector(s);
+
+// scan-to-connect: BIK Connect hub deep-link (#cfg={api,token}) OR ?api=&token= query
+let cfgApi = "", cfgTok = "";
+if (location.hash.startsWith("#cfg=")) {
+  try {
+    const c = JSON.parse(decodeURIComponent(location.hash.slice(5)));
+    cfgApi = c.api || ""; cfgTok = c.token || "";
+  } catch (e) {}
+}
 const params = new URLSearchParams(location.search);
-let API = (params.get("api") || localStorage.getItem("sage_api") || "http://127.0.0.1:8520").replace(/\/$/, "");
-let TOKEN = params.get("token") || localStorage.getItem("sage_token") || "";
-if (params.get("api")) localStorage.setItem("sage_api", API);
-if (params.get("token")) localStorage.setItem("sage_token", TOKEN);
-// scrub api/token from the visible URL so credentials don't linger in history
-if (params.get("api") || params.get("token")) {
+let API = (cfgApi || params.get("api") || localStorage.getItem("sage_api") || "http://127.0.0.1:8520").replace(/\/$/, "");
+let TOKEN = cfgTok || params.get("token") || localStorage.getItem("sage_token") || "";
+if (cfgApi || params.get("api")) localStorage.setItem("sage_api", API);
+if (cfgTok || params.get("token")) localStorage.setItem("sage_token", TOKEN);
+// scrub creds from the URL so they don't linger in history
+if (cfgApi || cfgTok || params.get("api") || params.get("token")) {
   try { history.replaceState({}, "", location.pathname); } catch (e) {}
 }
 
