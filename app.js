@@ -47,8 +47,10 @@ function showView(v) {
   $("#library").hidden = v !== "library";
   $("#player").hidden = v !== "player";
   $("#playerBar").hidden = v !== "player";
+  $("#review").hidden = v !== "review";
   $("#backBtn").hidden = v === "library";
   if (v === "library") $("#title").textContent = "Sage";
+  if (v === "review") $("#title").textContent = "🚩 Review";
 }
 
 async function loadLibrary() {
@@ -194,7 +196,7 @@ function setupMediaSession() {
   set("nexttrack", () => loadSeg(cur + 1, 0, true));
 }
 
-$("#backBtn").onclick = () => { audio.pause(); showView("library"); loadLibrary(); };
+$("#backBtn").onclick = () => { audio.pause(); showView("library"); loadLibrary(); loadReviewCount(); };
 $("#connBtn").onclick = () => openConn();
 function openConn() { $("#apiIn").value = API; $("#tokIn").value = TOKEN; $("#connDlg").showModal(); }
 $("#connDlg").addEventListener("close", () => {
@@ -207,8 +209,60 @@ $("#connDlg").addEventListener("close", () => {
   }
 });
 
+// ── Review loop: fold flagged captures into Atlas ──
+async function loadReviewCount() {
+  try {
+    const r = await api("/api/captures?status=raw");
+    if (!r.ok) return;
+    const caps = await r.json();
+    $("#revCount").textContent = caps.length;
+    $("#reviewBtn").hidden = caps.length === 0;
+  } catch (e) {}
+}
+async function openReview() {
+  showView("review");
+  const r = await api("/api/captures?status=raw");
+  const caps = r.ok ? await r.json() : [];
+  const list = $("#reviewList"); list.innerHTML = "";
+  $("#revEmpty").hidden = caps.length > 0;
+  caps.forEach(c => {
+    const card = document.createElement("div");
+    card.className = "rcard";
+    card.innerHTML = `
+      <div class="rsrc"></div>
+      <textarea class="rtext" rows="5"></textarea>
+      <input class="rnote" placeholder="Why this matters (becomes Atlas's prompt)…">
+      <div class="ractions">
+        <button class="discard">Discard</button>
+        <button class="promote">🧠 Fold into Atlas</button>
+      </div>`;
+    card.querySelector(".rsrc").textContent = c.book_title + (c.chapter_title ? " · " + c.chapter_title : "");
+    card.querySelector(".rtext").value = (c.polished_text || c.text_raw || "").trim();
+    card.querySelector(".rnote").value = c.note || "";
+    card.querySelector(".promote").onclick = () => promote(c.id, card);
+    card.querySelector(".discard").onclick = () => discard(c.id, card);
+    list.appendChild(card);
+  });
+}
+async function promote(id, card) {
+  const text = card.querySelector(".rtext").value.trim();
+  const note = card.querySelector(".rnote").value.trim();
+  if (!text) return toast("Add some text first");
+  card.querySelector(".promote").disabled = true;
+  await api(`/api/capture/${id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ polished_text: text, note }) });
+  const r = await api(`/api/capture/${id}/promote`, { method: "POST", headers: { "Content-Type": "application/json" } });
+  if (r.ok) { card.remove(); toast("🧠 Folded into Atlas"); loadReviewCount(); }
+  else { toast("⚠️ promote failed"); card.querySelector(".promote").disabled = false; }
+}
+async function discard(id, card) {
+  await api(`/api/capture/${id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "discarded" }) });
+  card.remove(); loadReviewCount();
+}
+$("#reviewBtn").onclick = openReview;
+
 if ("serviceWorker" in navigator)
   navigator.serviceWorker.register("sw.js").catch(() => {});
 
 $("#speedBtn").textContent = speed + "×";
 loadLibrary();
+loadReviewCount();

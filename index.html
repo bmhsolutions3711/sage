@@ -18,6 +18,7 @@
 
 <!-- Library -->
 <main id="library" class="view">
+  <button id="reviewBtn" class="reviewbar" hidden>🚩 Review captures (<span id="revCount">0</span>) → fold into Atlas</button>
   <div id="bookList" class="list"></div>
   <p id="libEmpty" class="muted" hidden>No books yet — ingest one on the Mac (a PDF/EPUB, or a capture session), then tap ⚙ → reload.</p>
 </main>
@@ -26,6 +27,12 @@
 <main id="player" class="view" hidden>
   <div id="nowChapter" class="muted"></div>
   <div id="reader" class="reader"></div>
+</main>
+
+<!-- Review -->
+<main id="review" class="view" hidden>
+  <div id="reviewList" class="list"></div>
+  <p id="revEmpty" class="muted" hidden>Nothing to review. Flag passages while listening, then fold them into Atlas here.</p>
 </main>
 
 <div id="playerBar" hidden>
