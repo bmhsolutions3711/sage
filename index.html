@@ -20,7 +20,14 @@
 <main id="library" class="view">
   <button id="reviewBtn" class="reviewbar" hidden>🚩 Review captures (<span id="revCount">0</span>) → fold into Atlas</button>
   <div id="bookList" class="list"></div>
-  <p id="libEmpty" class="muted" hidden>No books yet — ingest one on the Mac (a PDF/EPUB, or a capture session), then tap ⚙ → reload.</p>
+  <button id="addBookBtn" class="add-book">+ Add Book</button>
+  <input type="file" id="fileIn" accept=".pdf,.epub" hidden>
+  <div id="uploadProgress" class="upload-progress" hidden>
+    <div class="upload-info"><span id="uploadName"></span></div>
+    <div class="pbar"><div id="pbarFill" class="pbar-fill"></div></div>
+    <div id="uploadStatus" class="muted">Uploading…</div>
+  </div>
+  <p id="libEmpty" class="muted" hidden>No books yet — tap <strong>+ Add Book</strong> to upload a PDF or EPUB you own.</p>
 </main>
 
 <!-- Player -->

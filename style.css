@@ -57,6 +57,22 @@ dialog input{display:block;width:100%;margin-top:5px;padding:11px;border-radius:
 menu{display:flex;gap:8px;justify-content:flex-end;padding:0;margin:14px 0 0}
 menu button{padding:9px 15px;border-radius:9px;border:0;background:var(--accent);color:#03110b;font-weight:700}
 
+/* Upload */
+.add-book{
+  display:block;width:100%;margin-top:14px;padding:18px;border:2px dashed var(--line);
+  border-radius:14px;background:transparent;color:var(--accent);font-size:17px;
+  font-weight:700;letter-spacing:.5px;cursor:pointer;transition:border-color .2s,background .2s
+}
+.add-book:hover,.add-book:active{border-color:var(--accent);background:#1d2940}
+.add-book:disabled{opacity:.4;pointer-events:none}
+.upload-progress{
+  margin-top:14px;padding:16px;background:var(--bg2);border:1px solid var(--line);
+  border-radius:14px
+}
+.upload-info{font-weight:600;font-size:14px;margin-bottom:8px;word-break:break-all}
+.pbar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-bottom:6px}
+.pbar-fill{height:100%;width:0;background:var(--accent);border-radius:3px;transition:width .3s ease}
+
 /* Review loop */
 .reviewbar{display:block;width:100%;background:#2a1d1d;border:1px solid var(--flag);color:#ffb4b4;border-radius:12px;padding:14px;margin-bottom:14px;font-weight:600;font-size:15px}
 .rcard{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}

@@ -260,6 +260,67 @@ async function discard(id, card) {
 }
 $("#reviewBtn").onclick = openReview;
 
+// ── In-app book upload (EPUB/PDF) ──
+$("#addBookBtn").onclick = () => $("#fileIn").click();
+$("#fileIn").onchange = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  e.target.value = "";  // reset so same file can be re-selected
+  const ext = file.name.split(".").pop().toLowerCase();
+  if (!["pdf", "epub"].includes(ext)) {
+    toast("Only PDF and EPUB files are supported");
+    return;
+  }
+  // Show progress UI
+  $("#uploadName").textContent = file.name;
+  $("#uploadProgress").hidden = false;
+  $("#uploadStatus").textContent = "Uploading…";
+  $("#pbarFill").style.width = "0%";
+  $("#addBookBtn").disabled = true;
+
+  const form = new FormData();
+  form.append("file", file);
+
+  try {
+    // Use XMLHttpRequest for upload progress
+    const result = await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      const u = new URL(API + "/api/upload");
+      if (TOKEN) u.searchParams.set("token", TOKEN);
+      xhr.open("POST", u.toString());
+      xhr.upload.onprogress = (ev) => {
+        if (ev.lengthComputable) {
+          const pct = Math.round((ev.loaded / ev.total) * 100);
+          $("#pbarFill").style.width = pct + "%";
+          if (pct >= 100) $("#uploadStatus").textContent = "Processing…";
+        }
+      };
+      xhr.onload = () => {
+        try { resolve(JSON.parse(xhr.responseText)); }
+        catch { reject(new Error("bad response")); }
+      };
+      xhr.onerror = () => reject(new Error("upload failed"));
+      xhr.send(form);
+    });
+
+    if (result.ok) {
+      $("#uploadStatus").textContent = "Done!";
+      $("#pbarFill").style.width = "100%";
+      toast("Book added — loading library…");
+      setTimeout(() => { $("#uploadProgress").hidden = true; loadLibrary(); }, 1200);
+    } else {
+      $("#uploadStatus").textContent = result.error || "Upload failed";
+      toast("Upload failed: " + (result.error || "unknown error"));
+      setTimeout(() => { $("#uploadProgress").hidden = true; }, 3000);
+    }
+  } catch (err) {
+    $("#uploadStatus").textContent = "Error: " + err.message;
+    toast("Upload error — check connection");
+    setTimeout(() => { $("#uploadProgress").hidden = true; }, 3000);
+  }
+  $("#addBookBtn").disabled = false;
+};
+
 if ("serviceWorker" in navigator)
   navigator.serviceWorker.register("sw.js").catch(() => {});
 
