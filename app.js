@@ -108,10 +108,9 @@ function loadSeg(i, atSec = 0, autoplay = true) {
   if (i < 0 || i >= segs.length) return;
   cur = i;
   highlight();
-  if (!segs[i].has_audio) {           // no audio yet (e.g., chapter not synthesized) — skip ahead
-    if (autoplay && i < segs.length - 1) return loadSeg(i + 1, 0, true);
-    return;
-  }
+  // Audio is synthesized on demand by the backend (Piper) the first time a segment is requested,
+  // so we always point at /api/audio. audio.onerror (below) advances past any segment that truly
+  // can't be produced (e.g. empty text), so a freshly-uploaded book reads aloud start to finish.
   audio.src = audioURL(segs[i].idx);
   audio.playbackRate = speed;
   audio.oncanplay = () => {
