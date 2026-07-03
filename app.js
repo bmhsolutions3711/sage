@@ -284,12 +284,40 @@ $("#fileIn").onchange = async (e) => {
   // Show progress UI
   $("#uploadName").textContent = file.name;
   $("#uploadProgress").hidden = false;
-  $("#uploadStatus").textContent = "Uploading…";
+  $("#uploadStatus").textContent = "Reading file…";
   $("#pbarFill").style.width = "0%";
   $("#addBookBtn").disabled = true;
 
+  const fail = (msg) => {
+    $("#uploadStatus").textContent = msg;
+    toast(msg);
+    setTimeout(() => { $("#uploadProgress").hidden = true; }, 6000);
+    $("#addBookBtn").disabled = false;
+  };
+
+  // Read the file INTO MEMORY before any network I/O. On Android, picking a
+  // cloud-backed file (a Drive item not downloaded to the phone) hands over a
+  // reference whose read fails the moment the body starts streaming — the
+  // preflight succeeds, zero bytes reach the server, and Chrome reports it as
+  // a network error ("check connection") even though the network is fine.
+  // Reading first turns that into a precise, actionable message.
+  if (file.size === 0) {
+    return fail("That file reads as 0 bytes — it isn't downloaded to this phone. In Drive: ⋮ → Make available offline, or save it to Downloads, then pick it again.");
+  }
+  if (file.size > 200 * 1024 * 1024) {
+    return fail(`File is ${Math.round(file.size / 1048576)} MB — over the 200 MB limit.`);
+  }
+  let payload;
+  try {
+    const buf = await file.arrayBuffer();
+    payload = new File([buf], file.name, { type: file.type || "application/octet-stream" });
+  } catch (err) {
+    return fail("Couldn't read this file from storage (cloud file not on the phone?). In Drive: ⋮ → Make available offline, or save to Downloads, then pick it again.");
+  }
+  $("#uploadStatus").textContent = "Uploading…";
+
   const form = new FormData();
-  form.append("file", file);
+  form.append("file", payload);
 
   const u = new URL(API + "/api/upload");
   if (TOKEN) u.searchParams.set("token", TOKEN);
