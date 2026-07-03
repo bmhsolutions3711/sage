@@ -1,6 +1,6 @@
 /* Sage service worker — cache the app shell, NEVER cache the API/audio.
    Bump CACHE to ship an update (pwa-standard auto-update pattern). */
-const CACHE = "sage-v4";
+const CACHE = "sage-v5";
 const SHELL = ["./", "./index.html", "./app.js", "./style.css", "./manifest.json"];
 
 self.addEventListener("install", e => {

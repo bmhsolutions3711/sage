@@ -24,6 +24,11 @@ body{
 }
 .card .bt{font-size:17px;font-weight:600;margin-bottom:4px}
 .card:active{border-color:var(--accent)}
+.card.pending{opacity:.7}
+.card.pending .bt{animation:pulse 1.6s ease-in-out infinite}
+.card.failed{border-color:#7a3030}
+.card.failed .muted{color:#e08a8a}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
 #nowChapter{text-align:center;margin-bottom:10px;font-weight:600;color:var(--accent)}
 .reader{font-size:19px;line-height:1.75;max-width:42rem;margin:0 auto}
 .seg{margin:0 0 2px;padding:8px 12px;border-radius:10px;opacity:.5;transition:opacity .2s,background .2s}

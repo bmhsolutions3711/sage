@@ -65,8 +65,19 @@ async function loadLibrary() {
       el.className = "card";
       el.innerHTML = `<div class="bt"></div><div class="muted"></div>`;
       el.querySelector(".bt").textContent = b.title;
-      el.querySelector(".muted").textContent = `${b.author || ""} · ${b.source_type} · ${b.total_segments} segs`;
-      el.onclick = () => openBook(b.id);
+      const sub = el.querySelector(".muted");
+      if (b.status === "processing") {
+        el.classList.add("pending");
+        sub.textContent = "⏳ Processing… tap to refresh";
+        el.onclick = () => loadLibrary();  // let the user pull an update
+      } else if (b.status === "error") {
+        el.classList.add("failed");
+        sub.textContent = "⚠️ " + (b.error || "couldn't read this file");
+        el.onclick = () => toast(b.error || "This file couldn't be read");
+      } else {
+        sub.textContent = `${b.author || ""} · ${b.source_type} · ${b.total_segments} segs`;
+        el.onclick = () => openBook(b.id);
+      }
       list.appendChild(el);
     });
   } catch (e) { openConn(); }
@@ -302,11 +313,13 @@ $("#fileIn").onchange = async (e) => {
       xhr.send(form);
     });
 
-    if (result.ok) {
-      $("#uploadStatus").textContent = "Done!";
+    if (result.ok && result.book_id) {
+      // Upload landed; ingest now runs server-side (30-60s+ for a real book).
+      // Poll status so we never block the request on it (that was the old
+      // "upload error" bug — the phone connection timed out mid-ingest).
+      $("#uploadStatus").textContent = "Processing… (this can take a minute)";
       $("#pbarFill").style.width = "100%";
-      toast("Book added — loading library…");
-      setTimeout(() => { $("#uploadProgress").hidden = true; loadLibrary(); }, 1200);
+      await pollIngest(result.book_id);
     } else {
       $("#uploadStatus").textContent = result.error || "Upload failed";
       toast("Upload failed: " + (result.error || "unknown error"));
@@ -319,6 +332,37 @@ $("#fileIn").onchange = async (e) => {
   }
   $("#addBookBtn").disabled = false;
 };
+
+// Poll ingest status after an async upload. Resolves the progress UI to
+// Done (→ open library) or a surfaced error. ~3 min ceiling for a big book.
+async function pollIngest(bookId) {
+  const started = Date.now();
+  while (Date.now() - started < 180000) {
+    await new Promise(r => setTimeout(r, 2000));
+    let st;
+    try {
+      const r = await api(`/api/book/${bookId}/status`);
+      if (!r.ok) continue;
+      st = await r.json();
+    } catch (e) { continue; }  // transient network blip — keep polling
+    if (st.status === "ready") {
+      $("#uploadStatus").textContent = "Done!";
+      toast("Book added — loading library…");
+      setTimeout(() => { $("#uploadProgress").hidden = true; loadLibrary(); }, 1000);
+      return;
+    }
+    if (st.status === "error") {
+      $("#uploadStatus").textContent = st.error || "Ingest failed";
+      toast("Couldn't read that file: " + (st.error || "unknown error"));
+      setTimeout(() => { $("#uploadProgress").hidden = true; loadLibrary(); }, 5000);
+      return;
+    }
+  }
+  // Timed out waiting — the book may still finish; refresh the library so it
+  // shows up when it does.
+  $("#uploadStatus").textContent = "Still processing — check the library shortly";
+  setTimeout(() => { $("#uploadProgress").hidden = true; loadLibrary(); }, 3000);
+}
 
 if ("serviceWorker" in navigator)
   navigator.serviceWorker.register("sw.js").catch(() => {});
