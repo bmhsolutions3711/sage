@@ -291,27 +291,47 @@ $("#fileIn").onchange = async (e) => {
   const form = new FormData();
   form.append("file", file);
 
+  const u = new URL(API + "/api/upload");
+  if (TOKEN) u.searchParams.set("token", TOKEN);
+
+  // Preferred path: XHR with an upload-progress listener. NOTE: that listener
+  // forces a CORS preflight, and Chrome's Private Network Access can refuse to
+  // send the POST after a 200 preflight (public github.io -> tailnet backend).
+  // So on ANY network-level XHR failure we retry once with plain fetch() and no
+  // progress listener — a simple request with NO preflight at all.
+  const xhrUpload = () => new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", u.toString());
+    xhr.upload.onprogress = (ev) => {
+      if (ev.lengthComputable) {
+        const pct = Math.round((ev.loaded / ev.total) * 100);
+        $("#pbarFill").style.width = pct + "%";
+        if (pct >= 100) $("#uploadStatus").textContent = "Processing…";
+      }
+    };
+    xhr.onload = () => {
+      try { resolve(JSON.parse(xhr.responseText)); }
+      catch { reject(new Error("bad response")); }
+    };
+    xhr.onerror = () => reject(new Error("xhr-network"));
+    xhr.ontimeout = () => reject(new Error("xhr-timeout"));
+    xhr.send(form);
+  });
+  const fetchUpload = async () => {
+    $("#uploadStatus").textContent = "Uploading (fallback)…";
+    $("#pbarFill").style.width = "15%";  // no progress events on this path
+    const r = await fetch(u.toString(), { method: "POST", body: form });
+    return r.json();
+  };
+
   try {
-    // Use XMLHttpRequest for upload progress
-    const result = await new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      const u = new URL(API + "/api/upload");
-      if (TOKEN) u.searchParams.set("token", TOKEN);
-      xhr.open("POST", u.toString());
-      xhr.upload.onprogress = (ev) => {
-        if (ev.lengthComputable) {
-          const pct = Math.round((ev.loaded / ev.total) * 100);
-          $("#pbarFill").style.width = pct + "%";
-          if (pct >= 100) $("#uploadStatus").textContent = "Processing…";
-        }
-      };
-      xhr.onload = () => {
-        try { resolve(JSON.parse(xhr.responseText)); }
-        catch { reject(new Error("bad response")); }
-      };
-      xhr.onerror = () => reject(new Error("upload failed"));
-      xhr.send(form);
-    });
+    let result;
+    try {
+      result = await xhrUpload();
+    } catch (e1) {
+      if (e1.message === "bad response") throw e1;  // server answered garbage — don't re-send
+      result = await fetchUpload();                 // preflight-free retry
+    }
 
     if (result.ok && result.book_id) {
       // Upload landed; ingest now runs server-side (30-60s+ for a real book).
