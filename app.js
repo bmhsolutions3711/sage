@@ -208,13 +208,54 @@ function setupMediaSession() {
 
 $("#backBtn").onclick = () => { audio.pause(); showView("library"); loadLibrary(); loadReviewCount(); };
 $("#connBtn").onclick = () => openConn();
-function openConn() { $("#apiIn").value = API; $("#tokIn").value = TOKEN; $("#connDlg").showModal(); }
-$("#connDlg").addEventListener("close", () => {
+
+// Narrator voices (Kokoro + Piper rollback). Changing this just writes the backend
+// `voice` setting — segments.voice provenance resynthesizes audio on the fly.
+const NARRATORS = [
+  ["kokoro:af_river",   "River (F) — current"],
+  ["kokoro:af_heart",   "Heart (F)"],
+  ["kokoro:af_bella",   "Bella (F, expressive)"],
+  ["kokoro:af_nicole",  "Nicole (F, whisper)"],
+  ["kokoro:am_michael", "Michael (M — Atlas's voice)"],
+  ["kokoro:am_onyx",    "Onyx (M, deep)"],
+  ["kokoro:am_fenrir",  "Fenrir (M)"],
+  ["kokoro:bm_george",  "George (M, British)"],
+  ["kokoro:bm_fable",   "Fable (M, British)"],
+  ["kokoro:bf_emma",    "Emma (F, British)"],
+  ["piper:en_US-ryan-high", "Ryan (Piper rollback)"],
+];
+async function openConn() {
+  $("#apiIn").value = API; $("#tokIn").value = TOKEN;
+  const sel = $("#voiceIn");
+  sel.innerHTML = "";
+  let current = "kokoro:af_river";
+  try {
+    const r = await api("/api/settings");
+    if (r.ok) current = (await r.json()).voice || current;
+  } catch (e) {}
+  const specs = NARRATORS.map(([spec]) => spec);
+  if (!specs.includes(current)) NARRATORS.unshift([current, current]);  // custom spec set server-side
+  NARRATORS.forEach(([spec, label]) => {
+    const o = document.createElement("option");
+    o.value = spec; o.textContent = label; o.selected = spec === current;
+    sel.appendChild(o);
+  });
+  $("#connDlg").showModal();
+}
+$("#connDlg").addEventListener("close", async () => {
   if ($("#connDlg").returnValue === "save") {
     API = ($("#apiIn").value.trim() || API).replace(/\/$/, "");
     TOKEN = $("#tokIn").value.trim();
     localStorage.setItem("sage_api", API);
     localStorage.setItem("sage_token", TOKEN);
+    const v = $("#voiceIn").value;
+    if (v) {
+      try {
+        await api("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" },
+                                     body: JSON.stringify({ voice: v }) });
+        toast("Narrator: " + (NARRATORS.find(([s]) => s === v)?.[1] || v));
+      } catch (e) { toast("⚠️ couldn't save voice — check connection"); }
+    }
     loadLibrary();
   }
 });
